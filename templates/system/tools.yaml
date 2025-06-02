@@ -1,0 +1,72 @@
+
+
+templates:
+
+  - name: tools
+    version: 1.0.0
+    parameters:
+      namespace: kube-tools
+      reloader: true
+      replicator: true
+      secretGenerator: true
+    parametersSchema:
+      json: |
+        {
+          "$schema": "http://json-schema.org/schema#",
+          "type": "object",
+          "title": "Miscellaneous Tools",
+          "descrition": "Set of optional tools",
+          "additionalProperties": false,
+          "required": [
+          ],
+          "properties": {
+            "namespace": {
+              "type": "string",
+              "default": "kube-tools"
+            },
+            "reloader": {
+              "type": "boolean",
+              "default": true,
+              "description": "If true, reloader from stakater will be installed"
+            },
+            "replicator": {
+              "type": "boolean",
+              "default": true,
+              "description": "If true, replicator from mittwald will be installed"
+            },
+            "secretGenerator": {
+              "type": "boolean",
+              "default": true,
+              "description": "If true, secret-generator from stakater will be installed"
+            }
+          }
+        }
+    body: |
+      
+      componentReleases:
+
+      {{- if .Parameters.reloader }}
+      - name: tools-reloader
+        namespace: {{ .Parameters.namespace }}
+        component:
+          name: tools:reloader
+          version: 1.0.0
+      {{- end }}
+
+      {{- if .Parameters.replicator }}
+      - name: tools-replicator
+        namespace: {{ .Parameters.namespace }}
+        component:
+          name: tools:replicator
+          version: 1.0.0
+      {{- end }}
+
+      {{- if .Parameters.secretGenerator }}
+      - name: tools-secret-generator
+        namespace: {{ .Parameters.namespace }}
+        component:
+          name: tools:secret-generator
+          version: 1.0.0
+      {{- end }}
+
+

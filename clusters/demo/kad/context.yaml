@@ -1,0 +1,11 @@
+context:
+  ingress:
+    suffix: okdp.sandbox
+
+  certificateIssuers:
+    selfSigned:
+      name: default-issuer
+
+  storageClass:
+    data: standard
+    workspace: standard

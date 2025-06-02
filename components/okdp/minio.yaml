@@ -1,0 +1,106 @@
+
+
+components:
+
+  - name: minio
+    version: RELEASE.2024-07-04T14-25-45Z
+    parameters:
+      rootUser: minio
+      rootPassword: minio123
+      driveSize: 1G
+      replicas: "4"
+      drivesPerNode: "1"
+    catalogs:
+      - storage
+    config:
+      source:
+        interval: "2m"
+      timeout:  "5m"
+      install:
+        createNamespace: true
+        remediation:
+          retries: 30
+          remediateLastFailure: true
+      upgrade:
+        remediation:
+          retries: 30
+          remediateLastFailure: true
+    source:
+      defaultVersion: 5.2.0
+      allowedVersions:
+        - 5.2.0
+      gitRepository:
+        name: flux-system
+        path: ./charts/minio/{version}/
+        unmanaged: true
+        namespace: flux-system
+    allowValues: true
+    usage:
+      text: <a href="{{ .Meta.componentRelease.name }}-console.{{ .Context.ingress.suffix }}"></a>
+    dependsOn:
+      - keycloak
+      - ingress
+    values: |
+      {{- if dig "kyverno" "namespace" "" .Context }}
+      kyverno:
+        namespace: {{ .Context.kyverno.namespace }}
+      {{- end }}
+      minio:
+        rootUser: {{ .Parameters.rootUser }}
+        rootPassword: {{ .Parameters.rootPassword }}
+        clusterIssuer: {{ .Context.certificateIssuers.selfSigned.name }}
+        tls:
+          enabled: true
+        persistence:
+          storageClass: {{ .Context.storageClass.data }}
+          size: {{ .Parameters.driveSize }}
+        drivesPerNode: {{ .Parameters.drivesPerNode }}
+        replicas: {{ .Parameters.replicas }}
+        mode: distributed
+        pools: 1
+        ingress:
+          hosts:
+            - {{ required ".Meta.componentRelease.name is required" .Meta.componentRelease.name }}.{{ .Context.ingress.suffix }}
+        consoleIngress:
+          annotations:
+            cert-manager.io/cluster-issuer: {{ .Context.certificateIssuers.selfSigned.name }}
+          hosts:
+            - {{ .Meta.componentRelease.name}}-console.{{ .Context.ingress.suffix }}
+          tls:
+            - secretName: {{ .Meta.componentRelease.name }}-console-tls
+              hosts:
+                - {{ .Meta.componentRelease.name}}-console.{{ .Context.ingress.suffix }}
+        ingressExt:
+          enabled: {{ ne .Context.certificateIssuers.selfSigned.name .Context.certificateIssuers.selfSigned.name }}
+          clusterIssuer: {{ .Context.certificateIssuers.selfSigned.name }}
+          host: {{ .Meta.componentRelease.name }}-ext.{{ .Context.ingress.suffix }}
+        {{- if and .Parameters.topology .Context.minio }}
+        {{- if .Context.minio.topologies }}
+        {{- $topology := get .Context.minio.topologies .Parameters.topology }}
+        topologySpreadConstraints:
+          - maxSkew: 1
+            whenUnsatisfiable: DoNotSchedule
+            topologyKey: "{{ $topology.topologyKey }}"
+            #nodeAffinityPolicy: Honor
+            labelSelector:
+              matchLabels:
+                app: minio
+            #matchLabelKeys:
+            #  - controller-revision-hash
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: "{{ $topology.topologyKey }}"
+                      operator: In
+                      values:
+                        {{- toYaml $topology.zones | nindent 24 }}
+        {{- end }}
+        {{- end }}
+        resources:
+          requests:
+            memory: 200Mi # Create a parameter for this
+        users: []
+
+

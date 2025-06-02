@@ -1,0 +1,15 @@
+
+components:
+
+  - name: metallb-base
+    version: 1.0.0
+    config:
+      install:
+        createNamespace: true
+    source:
+      defaultVersion: 0.14.4
+      helmRepository:
+        url: https://metallb.github.io/metallb
+        chart: metallb
+    roles:
+      - metallb-base

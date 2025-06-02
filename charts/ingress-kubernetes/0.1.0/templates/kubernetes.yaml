@@ -1,0 +1,24 @@
+{{- if .Values.kubernetes.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kubernetes
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+spec:
+  rules:
+  - host: {{ required "'kubernetes.host' must be defined" .Values.kubernetes.host }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Values.kubernetes.service }}
+            port:
+              number: {{ .Values.kubernetes.port }}
+  ingressClassName: nginx
+
+{{- end }}

@@ -1,0 +1,19 @@
+{{ if .Values.minio.vip.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-vip
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: {{ .Values.minio.vip.ip }}
+spec:
+  selector:
+    app: minio
+    release: minio
+  type: LoadBalancer
+  ports:
+    - name: https
+      port: 9000
+      protocol: TCP
+      targetPort: 9000
+{{ end }}

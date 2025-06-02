@@ -1,0 +1,62 @@
+components:
+  - name: okdp-ui
+    version: 0.1.0-snapshot
+    config:
+      install:
+        createNamespace: true
+    parameters: { }
+    source:
+      defaultVersion: 0.1.0-snapshot
+      ociRepository:
+        url: oci://quay.io/okdp/charts/okdp-ui
+        interval: 10m
+    usage:
+      text: "{{ .Meta.componentRelease.name }}.{{ .Context.ingress.suffix }}"
+    values: |
+      # For more properties: https://github.com/OKDP/okdp-ui/blob/main/public/config/app.config.json
+      ui:
+        auth:
+          provider: oauth2
+          oauth2:
+            issuer: https://keycloak.{{ .Context.ingress.suffix }}/realms/master
+            redirectUri: https://okdp-ui.{{ .Context.ingress.suffix }}/index.html
+            silentRefreshRedirectUri: https://okdp-ui.{{ .Context.ingress.suffix }}/silent-refresh.html
+            clientId: public-oidc-client
+            responseType: code
+            scope: openid profile email offline_access roles
+            showDebugInformation: true
+            requireHttps: false
+        okdpApi:
+          apiUrl: https://okdp-server.{{ .Context.ingress.suffix }}/api/v1
+          swaggerUrl: https://okdp-server.{{ .Context.ingress.suffix }}/swagger
+        catalogs:
+          services:
+            - all
+          kad:
+            - all
+      
+      ingress:
+        enabled: true
+        className: "nginx"
+        annotations: 
+          cert-manager.io/cluster-issuer: "{{ .Context.certificateIssuers.selfSigned.name }}"
+          nginx.ingress.kubernetes.io/use-regex: "true"
+          nginx.ingress.kubernetes.io/configuration-snippet: |
+            if ($request_uri ~* "\.(js|css|ico|png|jpg|jpeg|svg|woff2|woff|ttf|json)$") {
+              break;
+            }
+            rewrite ^/(.*)$ / break;
+        tls:
+        - secretName: okdp-ui-tls
+          hosts:
+          - okdp-ui.{{ .Context.ingress.suffix }}
+        hosts:
+          - host: okdp-ui.{{ .Context.ingress.suffix }}
+            paths:
+            - path: "/"
+              pathType: ImplementationSpecific
+              backend:
+                service:
+                  name: okdp-ui
+                  port:
+                    number: 4200

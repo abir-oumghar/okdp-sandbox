@@ -1,0 +1,31 @@
+{{- if .Values.bundle.enabled }}
+---
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: {{ .Values.bundle.name }}  # The bundle name will also be used for the target
+spec:
+  sources:
+    - useDefaultCAs: false
+    # A Secret in the "trust" namespace; see "Trust Namespace" below for further details
+{{- range .Values.caClusterIssuers }}
+    - secret:
+        name: {{ .name }}
+        key: "tls.crt"
+{{- end }}
+{{- range .Values.selfsignedClusterIssuers }}
+    - secret:
+        name: {{ .name }}
+        key: "tls.crt"
+{{- end }}
+  target:
+    configMap:
+      key: "root-certs.pem"
+    additionalFormats:
+      jks:
+        key: "bundle.jks"
+      pkcs12:
+        key: "bundle.p12"
+    namespaceSelector:
+{{- toYaml .Values.bundle.namespaceSelector | nindent 6 }}
+{{- end }}

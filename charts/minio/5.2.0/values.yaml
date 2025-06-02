@@ -1,0 +1,92 @@
+
+kyverno:
+  resourcesName: minio*
+
+minio:
+
+  image:
+    tag: RELEASE.2024-07-04T14-25-45Z   # From doc on 2024-07-10
+#  image:
+#    repository: quay.io/minio/minio
+#    tag: RELEASE.2024-04-18T19-09-19Z
+#    pullPolicy: Always
+
+#    repository: ghcr.io/kubedp/minio-odp
+#    tag: RELEASE.2023-09-30T07-02-29Z
+#    pullPolicy: Always
+
+  rootUser: # TBD
+  rootPassword: # TBD
+
+  nameOverride: "minio"
+  fullnameOverride: "minio"
+
+  additionalAnnotations:
+    reloader.stakater.com/auto: "true"
+
+  ## TLS Settings for MinIO
+  tls:
+    enabled: true
+    ## Create a secret with private.key and public.crt files and pass that here. Ref: https://github.com/minio/minio/tree/master/docs/tls/kubernetes#2-create-kubernetes-secret
+    certSecret: "minio-internal-tls"
+    publicCrt: tls.crt
+    privateKey: tls.key
+
+  persistence:
+    storageClass: # TBD
+    size: # TBD
+
+  # Number of drives attached to a node
+  drivesPerNode: # TBD ( 1 or Xx4)
+  # Number of MinIO containers running
+  replicas: # TBD (1 or Xx4)
+  # Number of expanded MinIO clusters
+  pools: # TBD (1 or more)
+
+  resources:
+    requests:
+      memory: # TBD (min 4Gi ?)
+
+  ingress:
+    enabled: true
+    ingressClassName: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: 130m   # As minio put uses chunk of 128MB
+    hosts:
+      - # TBD
+
+  consoleIngress:
+    enabled: true
+    ingressClassName: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: 130m  # As minio put uses chunk of 128MB
+      cert-manager.io/cluster-issuer: # TBD
+    hosts:
+      - # TBD
+    tls:
+      # - secretName: minio-console-tls
+      #   hosts:
+      #     - TBD
+
+  # This is ingress controller to access minio under another (public) CA
+  # (The primary one use the minio internal CA which my be not referenced in client system.
+  # Drawback of using this ingress is lost of performance.
+  ingressExt:
+    enabled: false
+    clusterIssuer: # TBD
+    host: # TBD
+
+  # This is an ingress to access minio in plain text (No encryption).
+  # Use this only for testing purpose. NEVER IN PRODUCTION
+  ingressUnsec:
+    enabled: false
+    host: # TBD
+
+  # This will provide a straight through access to minio, without ingress
+  vip:
+    enabled: false
+    ip: # TBD
+    hosts: # TBD To be included in the certificate

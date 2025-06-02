@@ -1,0 +1,29 @@
+
+components:
+
+  - name: metallb-pool
+    version: 1.0.0
+    parameters:
+      addresses:
+    config:
+      timeout: 1m
+      install:
+        createNamespace: true
+        remediation:
+          retries: 30
+          remediateLastFailure: true
+      upgrade:
+        remediation:
+          retries: 30
+          remediateLastFailure: true
+    roles:
+      - metallb-pool
+    source:
+      defaultVersion: 0.1.0
+      gitRepository:
+        name: flux-system
+        path: ./charts/metallb-pool/{version}
+        unmanaged: true
+        namespace: flux-system
+    values: |
+      addresses: {{ .Parameters.addresses }}

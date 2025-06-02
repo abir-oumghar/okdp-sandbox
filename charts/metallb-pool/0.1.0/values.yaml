@@ -1,0 +1,6 @@
+
+# A list of IP address ranges over which MetalLB has authority.
+# Each range can be either a CIDR prefix, or an explicit start-end range of IPs.
+addresses: []
+
+

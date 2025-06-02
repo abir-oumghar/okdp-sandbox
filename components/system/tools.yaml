@@ -1,0 +1,87 @@
+
+
+components:
+
+  - name: tools:reloader
+    version: 1.0.0
+    config:
+      install:
+        createNamespace: true
+    source:
+      defaultVersion: 1.0.72
+      helmRepository:
+        url: https://stakater.github.io/stakater-charts
+        chart: reloader
+    values:
+      reloader:
+        deployment:
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+          containerSecurityContext:
+            capabilities:
+              drop:
+                - ALL
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+
+  - name: tools:replicator
+    version: 1.0.0
+    config:
+      install:
+        createNamespace: true
+    source:
+      defaultVersion: 2.9.2
+      helmRepository:
+        url: https://helm.mittwald.de
+        chart: kubernetes-replicator
+    values:
+      podSecurityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      securityContext:  # For container
+        capabilities:
+          drop:
+            - ALL
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1000
+      livenessProbe:
+        initialDelaySeconds: 10 # Was 60
+        #  periodSeconds: 10
+        #  timeoutSeconds: 1
+        #  failureThreshold: 3
+        #  successThreshold: 1
+      readinessProbe:
+        initialDelaySeconds: 10 # Was 60
+        #  periodSeconds: 10
+        #  timeoutSeconds: 1
+        #  failureThreshold: 3
+        #  successThreshold: 1
+
+  - name: tools:secret-generator
+    version: 1.0.0
+    config:
+      install:
+        createNamespace: true
+    source:
+      defaultVersion: 3.4.0
+      helmRepository:
+        url: https://helm.mittwald.de
+        chart: kubernetes-secret-generator
+    values:
+      # Otherwise, we got secret-generator-secret-generator
+      fullnameOverride: secret-generator
+      podSecurityContext:
+        fsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault  # ?
+      securityContext:
+        allowPrivilegeEscalation: false   # ?
+        capabilities:
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1000

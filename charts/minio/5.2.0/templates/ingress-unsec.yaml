@@ -1,0 +1,31 @@
+
+# This is an ingress to access minio in plain text (No encryption).
+# Use this only for testing purpose. NEVER IN PRODUCTION
+{{ if .Values.minio.ingressUnsec.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio-unsec
+  namespace: {{ .Release.Namespace  }}
+  {{ if .Values.minio.clusterIssuer }}
+  annotations:
+    # SSL on output, but not on input
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  {{ end }}
+  labels:
+    app: minio-unsec
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: {{ required "ingressHost must be defined for minio.ingressUnsec!" .Values.minio.ingressUnsec.host }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: minio
+                port:
+                  number: 9000
+            path: /
+            pathType: Prefix
+{{ end }}

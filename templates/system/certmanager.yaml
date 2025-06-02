@@ -1,0 +1,48 @@
+
+
+templates:
+
+  - name: cert-manager
+    version: 1.0.0
+    parameters:
+      namespace: cert-manager
+    parametersSchema:
+      yaml:
+        $schema: "http://json-schema.org/schema#"
+        title: cert-manager
+        description: "Automate Certificate generation"
+        type: object
+        additionalProperties: false
+        required:
+          - namespace
+        properties:
+          namespace:
+            type: string
+            default: cert-manager
+    body: |
+      componentReleases:
+
+        - name: cert-manager-base
+          enabled: true
+          component:
+            name: cert-manager-base
+            version: 1.0.0
+          namespace: {{ .Parameters.namespace }}
+
+        - name: trust-manager
+          component:
+            name: trust-manager
+            version: 1.0.0
+            parameters:
+              trustNamespace: {{ .Parameters.namespace }}
+          namespace:  {{ .Parameters.namespace }}
+
+        - name: certificate-issuers
+          component:
+            name: certificate-issuers
+            version: 1.0.0
+            parameters:
+              selfSignedClusterIssuer: 
+                {{ toYaml .Context.certificateIssuers.selfSigned  | nindent 10 }}
+          namespace:  {{ .Parameters.namespace }}
+

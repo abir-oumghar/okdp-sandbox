@@ -1,0 +1,127 @@
+
+components:
+  - name: jupyterhub
+    version: 5.0.0
+    config:
+      install:
+        createNamespace: true
+    parameters:
+      allowedRoles:
+    catalogs:
+      - notebooks
+    source:
+      defaultVersion: 3.3.7
+      helmRepository:
+        url: https://hub.jupyter.org/helm-chart/
+        chart: jupyterhub
+    usage:
+      text: <a href="{{ .Meta.componentRelease.name }}.{{ .Context.ingress.suffix }}"></a>
+    dependsOn:
+      - keycloak
+      - ingress
+    values: |
+      hub:
+        config:
+          Authenticator:
+            auto_login: true
+          GenericOAuthenticator:
+            client_id: confidential-oidc-client
+            client_secret: secret1
+            oauth_callback_url: https://{{ .Meta.componentRelease.name }}.{{ .Context.ingress.suffix }}/hub/oauth_callback
+            authorize_url: https://keycloak.{{ .Context.ingress.suffix }}/realms/master/protocol/openid-connect/auth
+            token_url: https://keycloak.{{ .Context.ingress.suffix }}/realms/master/protocol/openid-connect/token
+            userdata_url: https://keycloak.{{ .Context.ingress.suffix }}/realms/master/protocol/openid-connect/userinfo
+            validate_server_cert: false
+            login_service: keycloak
+            claim_groups_key: groups
+            userdata_params:
+              state: state
+            admin_groups:
+              - "{{ .Parameters.allowedRoles }}"
+            allowed_groups:
+              - "{{ .Parameters.allowedRoles }}"
+            username_key: preferred_username
+            scope:
+            - openid
+            - groups
+          JupyterHub:
+            authenticator_class: generic-oauth
+        networkPolicy:
+          enabled: false
+        extraConfig:
+          extraConfig01.py: |
+            c.KubeSpawner.delete_grace_period = 120
+            c.ServerApp.allow_root = True
+        image:
+          pullPolicy: Always
+          pullSecrets: []
+          name: quay.io/jupyterhub/k8s-hub
+          tag: "3.3.7"
+        db:
+          type: sqlite-pvc
+          pvc:
+            storage: 1Gi
+            storageClassName: "{{ .Context.storageClass.workspace }}"
+      
+      rbac:
+        create: true
+      
+      cull:
+        enabled: false
+      
+      proxy:
+        service:
+          type: ClusterIP
+      
+      ingress:
+        enabled: true
+        annotations:
+          nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+          cert-manager.io/cluster-issuer: "{{ .Context.certificateIssuers.selfSigned.name }}"
+        ingressClassName: nginx
+        hosts:
+          - "{{ .Meta.componentRelease.name }}.{{ .Context.ingress.suffix }}"
+        tls:
+          - secretName: {{ .Meta.componentRelease.name }}-tls
+            hosts:
+              - {{ .Meta.componentRelease.name }}.{{ .Context.ingress.suffix }}
+      
+      scheduling:
+        userScheduler:
+          enabled: false
+        userPlaceholder:
+          enabled: false
+      
+      singleuser:
+        image:
+          name: ghcr.io/kubotal/spark-notebook
+          tag: "2024-05-27-001"
+      
+        storage:
+          homeMountPath: "/home/{username}"
+          dynamic:
+            storageClass: standard
+          type: dynamic
+        cloudMetadata:
+          blockWithIptables: false
+        uid: 0
+        fsGid: 0
+        extraEnv:
+          NB_USER: "$(JUPYTERHUB_USER)"
+          NB_UID: "1001"
+          NB_GID: "100"
+          CHOWN_HOME: "yes"
+          CHOWN_HOME_OPTS: "-R"
+          JUPYTER_ENABLE_LAB: "yes"
+          EDITOR: "vim"
+          GIT_SSL_NO_VERIFY: "false"
+        extraPodConfig:
+          automount_service_account_token: false
+          terminationGracePeriodSeconds: 120
+        networkPolicy:
+          enabled: false
+      prePuller:
+        hook:
+          enabled: false
+        continuous:
+          enabled: false

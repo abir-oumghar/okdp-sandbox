@@ -1,0 +1,8 @@
+
+
+
+kubernetes:
+  enabled: false
+  host: # TBD. ex: kubernetes.ingress.mycluster.com
+  service: kubernetes
+  port: 443

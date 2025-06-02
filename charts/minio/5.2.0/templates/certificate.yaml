@@ -1,0 +1,26 @@
+{{ if and .Values.minio.tls.enabled .Values.minio.clusterIssuer }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "minio-internal-tls"
+spec:
+  dnsNames:
+    - minio.{{ .Release.Namespace }}.svc.cluster.local
+    - minio.{{ .Release.Namespace }}.svc
+    - minio
+    - minio-svc.{{ .Release.Namespace }}.svc.cluster.local
+    - minio-svc.{{ .Release.Namespace }}.svc
+    - minio-svc
+    - "*.minio-svc.{{ .Release.Namespace }}.svc.cluster.local"
+    - "*.minio.{{ .Release.Namespace }}.svc.cluster.local"
+    - {{ index .Values.minio.ingress.hosts 0 }}
+    - {{ index .Values.minio.consoleIngress.hosts 0 }}
+    {{ if .Values.minio.vip.enabled }}
+    - "{{ required "minio.vip.host must be defined if minio.vip.enabled" .Values.minio.vip.host }}"
+    {{ end }}
+  secretName: "minio-internal-tls"
+  issuerRef:
+    kind: ClusterIssuer
+    name: {{ .Values.minio.clusterIssuer }}
+{{ end }}

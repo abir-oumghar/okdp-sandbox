@@ -1,0 +1,200 @@
+components:
+  - name: keycloak
+    version: 24.4.11
+    config:
+      install:
+        createNamespace: true
+    parameters:
+      adminUser: "admin"
+      adminPassword: "admin"
+      postgresPassword: "2peivenu98"
+      postgresUser: "bn_keycloak"
+      postgresDbPassword: "fqTFx6lvxC"
+    source:
+      defaultVersion: 24.4.11
+      ociRepository:
+        url: oci://registry-1.docker.io/bitnamicharts/keycloak
+        interval: 10m
+    roles:
+      - keycloak
+    usage:
+      text: <a href="{{ .Meta.componentRelease.name }}.{{ .Context.ingress.suffix }}"></a>
+    values: |
+      ingress:
+        enabled: true
+        ingressClassName: "nginx"
+        annotations:
+          nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+          nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+          cert-manager.io/cluster-issuer: "{{ .Context.certificateIssuers.selfSigned.name }}"
+        tls: true
+        hostname: keycloak.{{ .Context.ingress.suffix }}
+      
+      auth:
+        adminUser: "{{ .Parameters.adminUser }}"
+        adminPassword: "{{ .Parameters.adminPassword }}"
+
+      postgresql:
+        enabled: true
+        auth:
+          postgresPassword: "{{ .Parameters.postgresPassword }}"
+          username: "{{ .Parameters.postgresUser }}"
+          password: "{{ .Parameters.postgresDbPassword }}"
+
+      keycloakConfigCli:
+        enabled: true
+        configuration:
+          master.json: |
+            {
+              "realm": "master",
+              "enabled": true,
+              "displayName": "OKDP internal Realm",
+              "users": [
+                {
+                  "username": "usera",
+                  "enabled": true,
+                  "emailVerified": true,
+                  "email": "usera@okdp.io",
+                  "firstName": "usera",
+                  "lastName": "usera",
+                  "credentials": [
+                    {
+                      "type": "password",
+                      "value": "usera"
+                    }
+                  ],
+                  "realmRoles": ["teama"]
+                },
+                {
+                  "username": "userb",
+                  "enabled": true,
+                  "emailVerified": true,
+                  "email": "userb@okdp.io",
+                  "firstName": "userb",
+                  "lastName": "userb",
+                  "credentials": [
+                    {
+                      "type": "password",
+                      "value": "userb"
+                    }
+                  ],
+                  "realmRoles": ["teamb"]
+                },
+                {
+                  "username": "adm",
+                  "enabled": true,
+                  "emailVerified": true,
+                  "email": "adm@okdp.io",
+                  "firstName": "adm",
+                  "lastName": "adm",
+                  "credentials": [
+                    {
+                      "type": "password",
+                      "value": "adm"
+                    }
+                  ],
+                  "realmRoles": ["admins"]
+                }
+              ],
+              "groups": [
+                {
+                  "name": "teama"
+                },
+                {
+                  "name": "teamb"
+                },
+                {
+                  "name": "admins"
+                }
+              ],
+              "roles": {
+                "realm": [
+                  {
+                    "name": "teama"
+                  },
+                  {
+                    "name": "teamb"
+                  },
+                  {
+                    "name": "admins"
+                  }
+                ]
+              },
+              "clients": [
+                {
+                  "clientId": "public-oidc-client",
+                  "name": "public-oidc-client",
+                  "publicClient": true,
+                  "redirectUris": [
+                    "https://okdp-server.{{ .Context.ingress.suffix }}/swagger/oauth2-redirect.html",
+                    "https://okdp-ui.{{ .Context.ingress.suffix }}/index.html",
+                    "https://okdp-ui.{{ .Context.ingress.suffix }}/silent-refresh.html"
+                  ],
+                  "webOrigins": [
+                    "https://okdp-server.{{ .Context.ingress.suffix }}",
+                    "https://okdp-ui.{{ .Context.ingress.suffix }}"
+                  ]
+                },
+                {
+                  "clientId": "confidential-oidc-client",
+                  "name": "confidential-oidc-client",
+                  "secret": "secret1",
+                  "redirectUris": [
+                    "https://*"
+                  ],
+                  "webOrigins": [
+                    "https://*"
+                  ],
+                  "defaultClientScopes": [
+                    "web-origins",
+                    "acr",
+                    "roles",
+                    "profile",
+                    "groups",
+                    "basic",
+                    "email"
+                  ],
+                  "optionalClientScopes": [
+                    "address",
+                    "phone",
+                    "organization",
+                    "offline_access",
+                    "microprofile-jwt"
+                  ]
+                }
+              ],
+              "clientScopes": [
+                {
+                  "id": "edefc8cd-f765-481a-bff3-45bd020953a0",
+                  "name": "groups",
+                  "description": "",
+                  "protocol": "openid-connect",
+                  "attributes": {
+                    "include.in.token.scope": "false",
+                    "display.on.consent.screen": "true",
+                    "gui.order": "",
+                    "consent.screen.text": ""
+                  },
+                  "protocolMappers": [
+                    {
+                      "id": "a4631741-8885-4a5e-8ee5-d4ebdd03e719",
+                      "name": "roles_map_to_groups",
+                      "protocol": "openid-connect",
+                      "protocolMapper": "oidc-usermodel-realm-role-mapper",
+                      "consentRequired": false,
+                      "config": {
+                        "introspection.token.claim": "true",
+                        "multivalued": "true",
+                        "userinfo.token.claim": "true",
+                        "id.token.claim": "true",
+                        "lightweight.claim": "true",
+                        "access.token.claim": "true",
+                        "claim.name": "groups",
+                        "jsonType.label": "String"
+                      }
+                    }
+                  ]
+                },
+              ],
+              "accessTokenLifespan": 3600
+            }

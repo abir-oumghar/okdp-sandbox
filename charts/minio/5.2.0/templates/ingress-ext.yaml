@@ -1,0 +1,54 @@
+
+
+# This is ingress controller to access minio under another (public) CA
+# (The primary one use the minio internal CA which my be not referenced in client system.
+# Drawback of using this ingress is lost of performance.
+{{ if .Values.minio.ingressExt.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio-ext
+  namespace: {{ .Release.Namespace  }}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 130m   # As minio put uses chunk of 128MB
+  {{ if and .Values.minio.clusterIssuer .Values.minio.ingressExt.clusterIssuer }}
+    # SSL both on input and output
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: {{ .Values.minio.ingressExt.clusterIssuer }}
+  {{ end }}
+  {{ if not (and .Values.minio.clusterIssuer .Values.minio.ingressExt.clusterIssuer) }}
+    # No SSL at all
+  {{ end }}
+  {{ if and (not .Values.minio.clusterIssuer) .Values.minio.ingressExt.clusterIssuer }}
+    # SSL on input, but not on output
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: {{ .Values.minio.ingressExt.clusterIssuer }}
+  {{ end }}
+  {{ if and .Values.minio.clusterIssuer (not .Values.minio.ingressExt.clusterIssuer) }}
+    # SSL on output, but not on input
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  {{ end }}
+  labels:
+    app: minio-ext
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: {{ required "ingressHost must be defined for minio.ingressExt!" .Values.minio.ingressExt.host }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: minio
+                port:
+                  number: 9000
+            path: /
+            pathType: Prefix
+  {{ if  .Values.minio.ingressExt.clusterIssuer }}
+  tls:
+    - hosts:
+        - {{ .Values.minio.ingressExt.host }}
+      secretName: minio-ext-tls
+  {{ end }}
+{{ end }}

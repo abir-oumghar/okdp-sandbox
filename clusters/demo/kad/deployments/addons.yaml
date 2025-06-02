@@ -1,0 +1,81 @@
+
+templateReleases:
+  - name: cert-manager
+    template:
+      name: cert-manager
+      version: 1.0.0
+      parameters:
+        namespace: cert-manager
+
+  - name: tools
+    template:
+      name: tools
+      version: 1.0.0
+      parameters:
+        reloader: true
+        replicator: true
+        secretGenerator: true
+
+
+componentReleases:
+
+  - name: coredns-patch
+    component:
+      name: coredns-patch
+      version: 1.0.0
+    namespace:  kube-system
+
+  - name: ingress-nginx
+    namespace: ingress-nginx
+    component:
+      name: ingress-nginx
+      version: 1.0.0
+      parameters:
+        mode: nodePort
+    dependsOn:
+      - certificate-issuers
+
+  - name: kad-webserver
+    enabled: true
+    component:
+      name: kad-webserver
+      version: 1.0.0
+      parameters:
+        debug: true
+        deploymentLocation: clusters/demo/kad/deployments
+        replicaCount: 1
+        staticToken: "sc6d3aCrdnE15gT1BXqDFggeChhL6fCR"
+    namespace: flux-system
+    dependsOn:
+      - ingress
+
+  - name: keycloak
+    namespace: ingress-nginx
+    component:
+      name: keycloak
+      version: 24.4.11
+      parameters:
+        adminUser: "admin"
+        adminPassword: "admin"
+    dependsOn:
+      - ingress
+
+  - name: okdp-server
+    namespace: ingress-nginx
+    component:
+      name: okdp-server
+      version: "0.1.0-snapshot"
+      parameters: {}
+    dependsOn:
+      - keycloak
+      - ingress
+
+  - name: okdp-ui
+    namespace: ingress-nginx
+    component:
+      name: okdp-ui
+      version: "0.1.0-snapshot"
+      parameters: {}
+    dependsOn:
+      - keycloak
+      - ingress
